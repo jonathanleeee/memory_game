@@ -39,21 +39,93 @@ class MemoryGame extends Component {
   ];
   cards = shuffle(cards);
   this.state = {cards, noClick: false};
+
+  this.handleClick = this.handleClick.bind(this);
+  this.handleNewGame = this.handleNewGame.bind(this);
+  }
+
+  handleNewGame() {
+    let cards = this.state.cards.map(c => ({
+      ...c,
+      cardState: CardState.HIDING
+    }));
+    cards = shuffle(cards);
+    this.setState({cards});
+  }
+
+  handleClick(id) {
+    // this.setState(prevState => {
+    //   let cards = prevState.cards.map(c => (
+    //     c.id === id ? {
+    //       ...c,
+    //       cardState: c.cardState === CardState.HIDING ? CardState.MATCHING : CardState.HIDING
+    //     } : c
+    //   ));
+    //   return {cards};
+    // });
+
+    // takes in an array of cards, an array of IDs to change, what state those IDs should have.
+    const mapCardState = (cards, idsToChange, newCardState) => {
+      return cards.map(c => {
+        if (idsToChange.includes(c.id)) {
+          return {
+            ...c,
+            cardState: newCardState
+          };
+        }
+        return c;
+      });
+    }
+
+
+    // grab the card we want out of the array
+    const foundCard = this.state.cards.find(c => c.id === id);
+    
+    if (this.state.noClick || foundCard.cardState !== CardState.HIDING) {
+      return;
+    }
+    
+    let noClick = false;
+    
+    let cards = mapCardState(this.state.cards, [id], CardState.SHOWING);
+    
+    const showingCards =  cards.filter((c) => c.cardState === CardState.SHOWING);
+    
+    const ids = showingCards.map(c => c.id);
+    
+    if (showingCards.length === 2 &&
+        showingCards[0].backgroundColor === showingCards[1].backgroundColor) {
+      cards = mapCardState(cards, ids, CardState.MATCHING);
+    } else if (showingCards.length === 2) {
+      let hidingCards = mapCardState(cards, ids, CardState.HIDING);
+      
+      noClick = true;
+      
+      this.setState({cards, noClick}, () => {
+        setTimeout(() => {
+          // set the state of the cards to HIDING after 1.3 seconds
+          this.setState({cards: hidingCards, noClick: false});
+        }, 1300);
+      });
+      return;
+    }
+    
+    this.setState({cards, noClick});
   }
 
   render() {
     const cards = this.state.cards.map((card) => (
       <Card 
         key={card.id} 
-        showing={true}
+        showing={card.cardState !== CardState.HIDING}
         backgroundColor={card.backgroundColor}
-        onClick={() => {}}
+        onClick={() => this.handleClick(card.id)}
       />
     ))
 
     return (
       <div>
-        <Navbar />
+        <Navbar onNewGame={this.handleNewGame} />
         {cards}
       </div>
     );
